@@ -31,5 +31,46 @@ Since HTTP and Web Server both are stateless, the only way to maintain a session
 4. __Cookies__ - Cookies are small piece of information that is sent by web server in response header and gets stored in the browser cookies. When client make further request, it adds the cookie to the request header and we can utilize it to keep track of the session.
 5. __Session Management API__ -
 
+## Session management in Java - Cookies
+Deployment descriptor web.xml of the web application
 
+```xml
+<?xml version="1.0" encoding="UTF-8"?> -->
+<!--  xsi:schemaLocation="{namespace} {location}" -->
+<web-app xmlns:xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="https://java.sun.com/xml/ns/javaee" 
+xsi:schemaLocation="https://java.sun.com/xml/ns/javaee https://java.sun.com/xml/ns/javaee/web-app_3_0.xsd" id="WebApp_ID" version="3.0">
+<display-name>ServletCookieExample</display-name>
+<Welcome-file-list>
+<Welcom-filel>login.html</Welcom-filel>
+</Welcome-file-list>
+</web-app>
+```
 
+login.html
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Login Page</title>
+</head>
+<body>
+
+<form action="LoginServlet" method="post">
+Username: <input type="text" name="user">
+<br>
+Password: <input type="password" name="pwd">
+<br>
+<input type="submit" value="Login">
+</form>
+</body>
+</html>
+```
+
+## Session in Java Servlet - HttpSession
+
+- Servlet API provides Session management through `HttpSession` interface.
+- We can get session from HttpServletRequest object using following methods.
+    1. HttpSession getSession() - 
+    2. HttpSession getSession(boolean flag) - 
