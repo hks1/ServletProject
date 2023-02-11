@@ -46,6 +46,8 @@ xsi:schemaLocation="https://java.sun.com/xml/ns/javaee https://java.sun.com/xml/
 </web-app>
 ```
 
+// http://localhost:8080/FirstServletProject/login.html
+
 login.html
 
 ```html
@@ -74,3 +76,17 @@ Password: <input type="password" name="pwd">
 - We can get session from HttpServletRequest object using following methods.
     1. HttpSession getSession() - 
     2. HttpSession getSession(boolean flag) - 
+
+
+Important methods of HttpSession:
+- __String getId()__
+- __Object getAttribute(String name)__ - Some other methods are `getAttributeNames()`, `removeAttribute(String name)` and `setAttribute(String name, Object value)`.
+- __long getCreationTime()__ - in ms since midnight January 1, 1970 GMT. Other method `getLastAccessedTime()`.
+- __setMaxInactiveInterval(int interval)__ - Specifies the time, in seconds, between client requests before the servlet container will invalidate this session. We can get session timeout value from `getMaxInactiveInterval()` method.
+- __ServletContext getServletContext()__ 
+- __boolean isNew()__ - Returns true if the client does not yet know about the session or if the client chooses not to join the session.
+- __void invalidate()__ 
+
+### JSESSIONID Cookie
+When we use HttpServletRequest getSession() method and it creates a new request, it creates the new HttpSession object and also add a Cookie to the response object with name JSESSIONID and value as session id. This cookie is used to identify the HttpSession object in further requests from client. If the cookies are disabled at client side and we are using URL rewriting then this method uses the jsessionid value from the request URL to find the corresponding session. JSESSIONID cookie is used for session tracking, so we should not use it for our application purposes to avoid any session related issues. 
+

@@ -10,6 +10,7 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 /**
  * Servlet implementation class LoginServlet
@@ -17,7 +18,7 @@ import javax.servlet.http.HttpServletResponse;
 @WebServlet("/LoginServlet")
 public class LoginServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-	private final String userID = "hks";
+	private final String userID = "admin";
 	private final String password = "password";
        
     /**
@@ -46,6 +47,9 @@ public class LoginServlet extends HttpServlet {
 		String pwd = request.getParameter("pwd");
 		
 		if(userID.equals(user) && password.equals(pwd)) {
+			HttpSession session = request.getSession();
+			session.setAttribute("user", "hks");
+			session.setMaxInactiveInterval(30*60); // 
 			Cookie loginCookie = new Cookie("user", user);
 			loginCookie.setMaxAge(30*60); // expiry 30 mins
 			response.addCookie(loginCookie);
