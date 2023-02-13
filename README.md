@@ -90,3 +90,56 @@ Important methods of HttpSession:
 ### JSESSIONID Cookie
 When we use HttpServletRequest getSession() method and it creates a new request, it creates the new HttpSession object and also add a Cookie to the response object with name JSESSIONID and value as session id. This cookie is used to identify the HttpSession object in further requests from client. If the cookies are disabled at client side and we are using URL rewriting then this method uses the jsessionid value from the request URL to find the corresponding session. JSESSIONID cookie is used for session tracking, so we should not use it for our application purposes to avoid any session related issues. 
 
+## Session Management in Java Servlet - URL Rewriting
+
+Servlet API provides support for URL rewriting that we can use to manage session if cookies are disable din the browser.
+
+- encoding the URL
+- Servlet URL encoding is a fallback approach and it kicks in only if browser cookies are disabled.
+- method to encode URL HTTPServletResponse `encodeURL()`
+- to redirect the request to another resource and provide session information, use `encodeRedirectURL()` method.
+
+<!-- https://www.digitalocean.com/community/tutorials/java-servlet-filter-example-tutorial -->
+
+# Java Servlet Filter
+
+- used to intercept the client request and do some pre-processing.
+- can also intercept the response and do post-processing before sending to the client in web application.
+
+
+- Servlet Filters are  __pluggable__  java components that can be used to intercept and process 
+    - requests  _before_  they are sent to servlets and  
+    - response  _after_ servlet code is finished and before container sends the response back to the client.
+- Servet Filters can be used for:
+    - Logging request parameters to log files
+    - Authentication and authorization of request for resources
+    - Formatting of request body or header before sending it to servlet
+    - Compressing the response data sent to the client
+    - Alter response by adding some cookies, header information, etc.
+
+- __Servlet filters are pluggable__  and configured in deployment descriptor (web.xml) file.
+- We can have multiple filters for a single resource and we can create a chain of filters for a single resource in web.xml.
+- Servlet Filter can be created by implementing `javax.servlet.Filter` interface.
+
+## Servlet Filter Interface
+
+- contains lifecycle methods of a Filter
+    - __void init(FilterConfig filterConfig)__ - invoked when container initializes the Filter.  __FilterConfig__  is used by container to provide init parameters and servlet context object to the Filter. can throw ServletException in this method.
+    - __doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain)__  - invoked everytime by container when it has to apply filter to a resource. Container provides request and response object references to filter as arguments. This is an example of  _Chain of Responsibility_  pattern.
+    - __void destroy()__ - invoked when container offloads the filter instance.
+- managed by servlet container
+
+## Servlet WebFilter annotation
+
+- `javax.servlet.annotation.WebFilter`, introduced in servlet 3.0. used to declare a servlet filter.
+- define init parameters, filter name and description, servlets, url patterns and dispatcher types to apply the filter.
+- in case of frequent changes to the filter configurations, using web.xml is better option because that'll not require recompilation of filter class.
+
+## Servlet Filter configuration in web.xml
+
+
+
+<!--
+References:
+https://www.digitalocean.com/community/tutorials/chain-of-responsibility-design-pattern-in-java
+-->

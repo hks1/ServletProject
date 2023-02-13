@@ -11,7 +11,7 @@
 // allow access only if session exists
 String user = null;
 if(session.getAttribute("user") == null){
-	response.sendRedirect("/login.html");
+	response.sendRedirect("login.html");
 } else user = (String) session.getAttribute("user");
 
 String userName = null;
@@ -30,8 +30,9 @@ if(userName == null) response.sendRedirect("login.html");
 <br>
 User=<%=user %>
 <br>
-<a href="CheckoutPage.jsp">Checkout Page</a>
-<form action="LogoutServlet" method="post">
+<!-- need to encode all the URLs where we want session information to be passed -->
+<a href="<%=response.encodeUrl("CheckoutPage.jsp") %>">Checkout Page</a>
+<form action="<%=response.encodeUrl("LogoutServlet") %>" method="post">
 <input type="submit" value="logout">
 </form>
 

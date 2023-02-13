@@ -1,6 +1,8 @@
 package com.hks.first.session;
 
 import java.io.IOException;
+import java.util.Enumeration;
+
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.Cookie;
@@ -44,9 +46,16 @@ public class LogoutServlet extends HttpServlet {
 			for(Cookie cookie : cookies) {
 				if(cookie.getName().equals("JSESSIONID")) {
 					System.out.println("JSESSIONID="+cookie.getValue());
-					break;
+					//break;
 				}
+				cookie.setMaxAge(0);
+				response.addCookie(cookie);
 			}
+		}
+		Enumeration<String> attributes = request.getSession().getAttributeNames();
+		while(attributes.hasMoreElements()) {
+			String attribute = attributes.nextElement();
+			System.out.println(attribute+": "+request.getSession().getAttribute(attribute));
 		}
 		// invalidate the session if exists
 		HttpSession session = request.getSession(false);

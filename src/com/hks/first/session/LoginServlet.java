@@ -2,6 +2,8 @@ package com.hks.first.session;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Arrays;
+import java.util.List;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
@@ -20,6 +22,7 @@ public class LoginServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	private final String userID = "admin";
 	private final String password = "password";
+	private final List<String> users = Arrays.asList(new String[] {"admin", "user1"});
        
     /**
      * @see HttpServlet#HttpServlet()
@@ -46,14 +49,17 @@ public class LoginServlet extends HttpServlet {
 		String user = request.getParameter("user");
 		String pwd = request.getParameter("pwd");
 		
-		if(userID.equals(user) && password.equals(pwd)) {
+		if(users.contains(user) && password.equals(pwd)) {
+		//if(userID.equals(user) && password.equals(pwd)) {
 			HttpSession session = request.getSession();
-			session.setAttribute("user", "hks");
+			session.setAttribute("user", user);
 			session.setMaxInactiveInterval(30*60); // 
 			Cookie loginCookie = new Cookie("user", user);
 			loginCookie.setMaxAge(30*60); // expiry 30 mins
 			response.addCookie(loginCookie);
-			response.sendRedirect("LoginSuccess.jsp");
+			//response.sendRedirect("LoginSuccess.jsp");
+			String encodedURL = response.encodeRedirectUrl("LoginSuccess.jsp");
+			response.sendRedirect(encodedURL);
 		}else {
 			RequestDispatcher rd = getServletContext().getRequestDispatcher("/login.html");
 			PrintWriter out = response.getWriter();
