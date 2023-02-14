@@ -137,6 +137,165 @@ Servlet API provides support for URL rewriting that we can use to manage session
 
 ## Servlet Filter configuration in web.xml
 
+declare servlet filter 
+- in web.xml, or 
+- by using `@WebFilter` annotation
+
+
+```xml
+<filter>
+  <filter-name>RequestLoggingFilter</filter-name> <!-- mandatory -->
+  <filter-class>com.hks.first.filters.RequestLoggingFilter</filter-class> <!-- mandatory -->
+  <init-param> <!-- optional -->
+  <param-name>test</param-name>
+  <param-value>testValue</param-value>
+  </init-param>
+</filter>
+```
+
+map a filter to servlet classes or URL patterns
+
+```xml
+<filter-mapping>
+  <filter-name>RequestLoggingFilter</filter-name> <!-- mandatory -->
+  <url-pattern>/*</url-pattern> <!-- either url-pattern or servlet-name is mandatory -->
+  <servlet-name>LoginServlet</servlet-name>
+  <dispatcher>REQUEST</dispatcher>
+</filter-mapping>
+```
+
+- While creating the filter chain for a servlet, container first processes the url-patterns and then servlet-names
+- Servlet Filters are generally used for client requests but sometimes we want to apply filters with RequestDispatcher also, we can use dispatcher element in this case, the possible values are REQUEST, FORWARD, INCLUDE, ERROR and ASYNC. If no dispatcher is defined then it’s applied only to client requests.
+
+## Servlet Filter Example for Logging and Session Validation
+
+```java
+package com.hks.first.filters;
+
+import java.io.IOException;
+import java.util.Enumeration;
+
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+
+public class RequestLoggingFilter implements Filter{
+	
+	private ServletContext context;
+	
+	@Override
+	public void init(FilterConfig config) throws ServletException {
+		// TODO Auto-generated method stub
+		this.context = config.getServletContext();
+		this.context.log("RequestLogginFilter initialized");
+		
+	}
+
+	@Override
+	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+			throws IOException, ServletException {
+		// TODO Auto-generated method stub
+		HttpServletRequest req = (HttpServletRequest) request;
+		Enumeration<String> params = req.getAttributeNames();
+		
+		while(params.hasMoreElements()) {
+			String param = params.nextElement();
+			String value = req.getParameter(param);
+			this.context.log(req.getRemoteAddr() + "::Request params::{"+param+"="+value+"}");
+			System.out.println(req.getRemoteAddr() + "::Request params::{"+param+"="+value+"}");
+		}
+		
+		Cookie[] cookies = req.getCookies();
+		if(cookies != null) {
+			for(Cookie cookie : cookies) {
+				this.context.log(req.getRemoteAddr() + "::Cookie::{"+cookie.getName()+","+cookie.getValue()+"}");
+			}
+		}
+		
+		// pass the request along the filter chain
+		chain.doFilter(req, response);
+		
+	}
+	
+	@Override
+	public void destroy() {
+		// TODO Auto-generated method stub
+		
+	}
+
+}
+```
+
+```java
+package com.hks.first.filters;
+
+import java.io.IOException;
+import java.util.Enumeration;
+
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.annotation.WebFilter;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+@WebFilter
+public class AuthenticationFilter implements Filter{
+	private ServletContext context;
+	@Override
+	public void init(FilterConfig filterConfig) throws ServletException {
+		// TODO Auto-generated method stub
+		this.context = filterConfig.getServletContext();
+		this.context.log("Authentication Filter initialized");
+		
+	}
+	@Override
+	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+			throws IOException, ServletException {
+		// TODO Auto-generated method stub
+		HttpServletRequest req = (HttpServletRequest) request;
+		HttpServletResponse res = (HttpServletResponse) response;
+		
+		String uri = req.getRequestURI();
+		this.context.log("Requested resource: "+uri);
+		
+		HttpSession session = req.getSession(false);
+		if(null != session) {
+			Enumeration<String> attrs = session.getAttributeNames();
+			while(attrs.hasMoreElements()) {
+				this.context.log(attrs.nextElement());
+			}
+		}
+		this.context.log(String.valueOf(session == null && !(uri.endsWith(".html") || uri.endsWith("LoginServlet"))));
+		
+		if(session == null && !(uri.endsWith(".html") || uri.endsWith("LoginServlet"))) {
+			this.context.log("Unauthorized access request");
+			res.sendRedirect("login.html");
+		}else {
+			// pass the request along the filter chain
+			chain.doFilter(request, response);
+		}
+		
+	}
+	@Override
+	public void destroy() {
+		// TODO Auto-generated method stub
+		
+	}
+
+}
+```
 
 
 <!--

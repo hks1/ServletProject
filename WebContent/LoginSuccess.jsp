@@ -10,10 +10,11 @@
 <%
 // allow access only if session exists
 String user = null;
+/* 
 if(session.getAttribute("user") == null){
 	response.sendRedirect("login.html");
 } else user = (String) session.getAttribute("user");
-
+ */
 String userName = null;
 String sessionID = null;
 
@@ -24,7 +25,7 @@ if(cookies != null){
 		if(cookie.getName().equals("JSESSIONID")) sessionID = cookie.getValue();
 	}
 }
-if(userName == null) response.sendRedirect("login.html");
+//if(userName == null) response.sendRedirect("login.html");
 %>
 <h3>Hi <%=userName %>, Login successful. Your session ID=<%=sessionID %>></h3>
 <br>

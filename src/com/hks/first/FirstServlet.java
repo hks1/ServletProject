@@ -15,7 +15,7 @@ import javax.servlet.http.HttpServletResponse;
  * Servlet implementation class FirstServlet
  */
 //@WebServlet("/FirstServlet")
-@WebServlet(description = "First Servlet", urlPatterns = {"/FirstServlet", "/FirstServlet.do"}, initParams = {@WebInitParam(name = "id", value = "1"), @WebInitParam(name = "name", value="hks")})
+//@WebServlet(description = "First Servlet", urlPatterns = {"/FirstServlet", "/FirstServlet.do"}, initParams = {@WebInitParam(name = "id", value = "1"), @WebInitParam(name = "name", value="hks")})
 public class FirstServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	
