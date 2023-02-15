@@ -33,6 +33,7 @@ User=<%=user %>
 <br>
 <!-- need to encode all the URLs where we want session information to be passed -->
 <a href="<%=response.encodeUrl("CheckoutPage.jsp") %>">Checkout Page</a>
+<a href="<%=response.encodeUrl("index.html") %>">File Upload</a>
 <form action="<%=response.encodeUrl("LogoutServlet") %>" method="post">
 <input type="submit" value="logout">
 </form>

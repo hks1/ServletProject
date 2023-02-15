@@ -973,8 +973,260 @@ Note: If there are multiple error-page entries, let’s say one for Throwable and 
 
 - You can also use  __JSP page as exception handler__ , just provide the location of jsp file rather than servlet mapping.
 
- 
+
+# Servlet File upload / download
+
+### html page for uploading file to server
+
+- post request to servlet
+- __enctype__  of form should be  __multipart/form-data__.
+- To select a file from user file system,  __input__  element with  __type__  as  __file__. 
+
+```html
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="ISO-8859-1">
+		<title>File Upload</title>
+	</head>
+	<body>
+		<form action="UploadDownloadFileServlet" method="post" enctype="multipart/form-data">
+			Select file to upload: <input type="file" name="fileName">
+			<br>
+			<input type="submit" value="Upload">
+		</form>
+	</body>
+</html>
+```
+
+### Server file location for file upload
+
+- configurable in deployment descriptor context params.
+
+```web.xml
+  <context-param>
+  	<param-name>tempfile.dir</param-name>
+  	<param-value>tmpfiles</param-value>
+  </context-param>
+```
+
+### ServletContextListener for file upload location
+
+```java
+package com.hks.first.listener;
+
+import java.io.File;
+
+import javax.servlet.ServletContext;
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
+import javax.servlet.annotation.WebListener;
+
+/**
+ * Application Lifecycle Listener implementation class FileLocationContextListener
+ *
+ */
+@WebListener
+public class FileLocationContextListener implements ServletContextListener {
+
+    /**
+     * Default constructor. 
+     */
+    public FileLocationContextListener() {
+        // TODO Auto-generated constructor stub
+    }
+
+	/**
+     * @see ServletContextListener#contextDestroyed(ServletContextEvent)
+     */
+    public void contextDestroyed(ServletContextEvent arg0)  { 
+         // TODO Auto-generated method stub
+    }
+
+	/**
+     * @see ServletContextListener#contextInitialized(ServletContextEvent)
+     */
+    public void contextInitialized(ServletContextEvent servletContextEvent)  { 
+         // TODO Auto-generated method stub
+    	String rootPath = System.getProperty("catlina.home");
+    	ServletContext ctx = servletContextEvent.getServletContext();
+    	String relativePath = ctx.getInitParameter("tempfile.dir");
+    	
+    	File file = new File(rootPath + File.separator + relativePath);
+    	if(file.exists()) file.mkdirs();
+    	
+    	System.out.println("File Directory created to be used for storing files.");
+    	
+    	ctx.setAttribute("FILES_DIR_FILE", file);
+    	ctx.setAttribute("FILES_DIR", rootPath + File.separator + relativePath);
+    }
+	
+}
+```
+
+### File upload download servlet
+
+__Update__: Servlet Specs 3 added support to upload files on server in the API, so we won’t need to use any third party API.
+
+
+- For file upload, we'll use  __Apache Commons FileUpload__  utility and it's dependency  __Apache Commons IO__  jar.
+
+- __DiskFileItemFactory__  factory that provides a method to parse the HttpServletRequest object and return list of  __FileItem__.
+- FileItem provides useful method to get the file name, field name in form, size and content type details of the file that needs to be uploaded.
+- To write file to a directory, create a File object and pass it as argument to FileItem `write()` method.
+- Since the whole purpose of the servlet is to upload file, we will override init() method to initialise the `DiskFileItemFactory` object instance of the servlet. We will use this object in the doPost() method implementation to upload file to server directory.
+- Once the file gets uploaded successfully, we will send response to client with URL to download the file, since HTML links use GET method,we will append the parameter for file name in the URL and we can utilise the same servlet doGet() method to implement file download process.
+- For implementing download file servlet, 
+    - first we will open the InputStream for the file and use  __ServletContext.getMimeType()__  method to get the MIME type of the file and set it as response content type.
+    - We will also need to set the response content length as length of the file.
+    - To make sure that client understand that we are sending file in response, we need to set  __“Content-Disposition”__  header with value as  __"attachment; filename=“fileName”__ .
+    - Once we are done with setting response configuration, we can read file content from InputStream and write it to ServletOutputStream and the flush the output to client.
+
 <!--
+Apache Commons IO jar and Apache Commons FileUpload jar from below URLs. https://commons.apache.org/proper/commons-fileupload/download_fileupload.cgi https://commons.apache.org/proper/commons-io/download_io.cgi
+-->
+
+
+```java
+	package com.hks.servlet;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintWriter;
+import java.util.Iterator;
+import java.util.List;
+
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+//import org.apache.tomcat.util.http.fileupload.FileItem;
+//import org.apache.tomcat.util.http.fileupload.FileUploadException;
+//import org.apache.tomcat.util.http.fileupload.disk.DiskFileItemFactory;
+//import org.apache.tomcat.util.http.fileupload.servlet.ServletFileUpload;
+
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
+
+/**
+ * Servlet implementation class UploadDownloadFileServlet
+ */
+@WebServlet("/UploadDownloadFileServlet")
+public class UploadDownloadFileServlet extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+	private ServletFileUpload uploader = null;
+       
+    /**
+     * @see HttpServlet#HttpServlet()
+     */
+    public UploadDownloadFileServlet() {
+        super();
+        // TODO Auto-generated constructor stub
+    }
+    
+    @Override
+    public void init() throws ServletException {
+    	// TODO Auto-generated method stub
+    	//super.init();
+    	DiskFileItemFactory fileFactory = new DiskFileItemFactory();
+    	File filesDir = (File) getServletContext().getAttribute("FILES_DIR_FILE");
+    	fileFactory.setRepository(filesDir);
+    	this.uploader = new ServletFileUpload(fileFactory);
+    }
+
+	/**
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		//response.getWriter().append("Served at: ").append(request.getContextPath());
+		String fileName = request.getParameter("fileName");
+		if(fileName == null || fileName.equals("")) {
+			throw new ServletException("File name can't be null or empty");
+		}
+		File file = new File(request.getServletContext().getAttribute("FILES_DIR")+File.separator+fileName);
+		if(!file.exists()) {
+			throw new ServletException("File doesn't exist on the server");
+		}
+		System.out.println("File location on the server:"+file.getAbsolutePath());
+		ServletContext ctx = getServletContext();
+		InputStream fis = new FileInputStream(file);
+		String mimeType = ctx.getMimeType(file.getAbsolutePath());
+		response.setContentType(mimeType != null ? mimeType : "application/octet-stream");
+		response.setContentLength((int) file.length());
+		response.setHeader("Contect-Disposition", "attachment; filename=\"" +fileName+ "\"");
+		
+		ServletOutputStream os = response.getOutputStream();
+		byte[] buferData = new byte[1024];
+		int read = 0;
+		while((read = fis.read(buferData)) != -1) {
+			os.write(buferData, 0, read);
+		}
+		os.flush();
+		os.close();
+		fis.close();
+		System.out.println("File downloaded at client successfully");
+	}
+
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		//doGet(request, response);
+		if(!ServletFileUpload.isMultipartContent(request)) {
+			throw new ServletException("Content type is not multipart/form-data");
+		}
+		
+		response.setContentType("text/html");
+		PrintWriter out = response.getWriter();
+		out.write("<html><head></head><body>");
+		try {
+			List<FileItem> fileItemsList = uploader.parseRequest(request);
+			Iterator<FileItem> fileItemsIterator = fileItemsList.iterator();
+			while(fileItemsIterator.hasNext()) {
+				FileItem fileItem = fileItemsIterator.next();
+				System.out.println("FieldName="+fileItem.getFieldName());
+				System.out.println("FileName="+fileItem.getName());
+				System.out.println("ContentType="+fileItem.getContentType());
+				System.out.println("Size in bytes="+fileItem.getSize());
+				
+				File file = new File(request.getServletContext().getAttribute("FILES_DIR")+File.separator+fileItem.getName());
+				System.out.println("Absolute path at the server: "+file.getAbsolutePath());
+				fileItem.write(file);
+				out.write("File "+ fileItem.getName()+" uploaded successfully");
+				out.write("<br>");
+				out.write("<a href=\"UploadDownloadFileServlet?fileName="+fileItem.getName()+"\">Download "+fileItem.getName()+"</a>");
+			}
+		} catch(FileUploadException e) {
+			out.write("Exception in uploading file.");
+		} catch(Exception e) {
+			e.printStackTrace();
+			out.write("Exception in uploading file....");
+		}
+		out.write("</body></html>");
+	}
+
+}
+```
+
+
+
+
+
+
+
+
+ 
+ <!--
 References:
 chain of responsibility -
 https://www.digitalocean.com/community/tutorials/chain-of-responsibility-design-pattern-in-java

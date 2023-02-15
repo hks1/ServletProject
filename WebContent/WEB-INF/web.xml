@@ -44,6 +44,11 @@
 	  <param-value>jdbc:mysql://localhost/mysql_db</param-value>
   </context-param>
   
+  <context-param>
+  	<param-name>tempfile.dir</param-name>
+  	<param-value>tmpfiles</param-value>
+  </context-param>
+  
   <listener>
 	  <listener-class>com.hks.first.listener.AppContextListener</listener-class>
   </listener>
