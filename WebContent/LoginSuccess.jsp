@@ -34,6 +34,12 @@ User=<%=user %>
 <!-- need to encode all the URLs where we want session information to be passed -->
 <a href="<%=response.encodeUrl("CheckoutPage.jsp") %>">Checkout Page</a>
 <a href="<%=response.encodeUrl("index.html") %>">File Upload</a>
+<a href="<%=response.encodeUrl("fileupload.html") %>">Servlet 3 File Upload</a>
+<br>
+<a href="<%=response.encodeUrl("/JDBCDataSourceExampleServlet") %>">DataSource</a>
+<form action="<%=response.encodeUrl("JDBCDataSourceExampleServlet") %>" method="get">
+	<input type="submit" value="Show DataSource">
+</form>
 <form action="<%=response.encodeUrl("LogoutServlet") %>" method="post">
 <input type="submit" value="logout">
 </form>

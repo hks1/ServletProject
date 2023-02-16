@@ -1453,6 +1453,52 @@ These implementation classes provide methods through which we can provide databa
 - Logging features
 - ResultSet maximum size threshold
 
+### sample data
+
+```mysql
+--Create Employee table
+CREATE TABLE `Employee` (
+  `empId` int(10) unsigned NOT NULL,
+  `name` varchar(10) DEFAULT NULL,
+  PRIMARY KEY (`empId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- insert some sample data
+INSERT INTO `Employee` (`empId`, `name`)
+VALUES
+	(1, 'Pankaj'),
+	(2, 'David');
+
+commit;
+```
+
+```oracle
+CREATE TABLE "EMPLOYEE"
+  (
+    "EMPID"   NUMBER NOT NULL ENABLE,
+    "NAME"    VARCHAR2(10 BYTE) DEFAULT NULL,
+    PRIMARY KEY ("EMPID")
+  );
+
+Insert into EMPLOYEE (EMPID,NAME) values (10,'Pankaj');
+Insert into EMPLOYEE (EMPID,NAME) values (5,'Kumar');
+Insert into EMPLOYEE (EMPID,NAME) values (1,'Pankaj');
+commit;
+```
+
+```db.properties
+#mysql DB properties
+MYSQL_DB_DRIVER_CLASS=com.mysql.jdbc.Driver
+MYSQL_DB_URL=jdbc:mysql://localhost:3306/UserDB
+MYSQL_DB_USERNAME=pankaj
+MYSQL_DB_PASSWORD=pankaj123
+
+#Oracle DB Properties
+ORACLE_DB_DRIVER_CLASS=oracle.jdbc.driver.OracleDriver
+ORACLE_DB_URL=jdbc:oracle:thin:@localhost:1521:orcl
+ORACLE_DB_USERNAME=hr
+ORACLE_DB_PASSWORD=oracle
+```
 
 #
 
@@ -1631,6 +1677,14 @@ Context intitCtx = (Context) ctx.lookup("java:/comp/env");
 DataSource ds = (DataSource) intitCtx.lookup("jdbc/MyLocalDB");
 
 ```
+
+#
+
+# Spring Security
+
+<!-- https://www.digitalocean.com/community/tutorials/spring-security-example-tutorial -->
+
+
 
 
  
