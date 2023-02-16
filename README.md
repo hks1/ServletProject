@@ -338,6 +338,8 @@ public class AuthenticationFilter implements Filter{
 __Note:__ Struts 2 uses Servlet Filter to intercept the client requests and forward them to apropriate action classes, these are called __Struts 2 Interceptors__.
 <!-- https://www.digitalocean.com/community/tutorials/struts-tutorial-for-beginners -->
 
+#
+
 # Servlet Listener
 
 
@@ -358,9 +360,41 @@ __Note:__ Struts 2 uses Servlet Filter to intercept the client requests and forw
 - __User creates an event listener class that implements one of the listener interfaces.__
 
 
-steps for using servlet listener
+#### steps for using servlet listener
 1. Prepare the Listener class
 2. Use the Listener tag and classes in web.xml file
+
+Note: Except for HttpSessionBindingListener and HttpSessionActivationListener, all Listeners require the setup described above.
+
+#### Event Servlet Listener
+
+- Servlet API offers many types of listeners for various types of Events. 
+- Listener interfaces describe methods for interacting with a group of related events; for instance, the ServletContext Listener interface listens for context startup and shutdown events.
+
+- Each method in the listener interface accepts an Event object as an argument. 
+- Event object functions as a container to deliver specified objects to listeners.
+
+- The Servlet API provides the subsequent event objects:
+    - __servlet.AsynEvent__ - 
+    - __servlet.http.HttpSessionBindingEvent__ - 
+    - __servlet.http.HttpSessionEvent__ - 
+    - __servlet.ServletContextAttributeEvent__ - 
+    - __servlet.ServletContextEvent__ - 
+    - __servlet.ServletRequestEvent__ - 
+    - __servlet.ServletRequestAttributeEvent__ - 
+
+#### Servlet Listener Parameters
+
+Servlet Listener interfaces are offered by the Servlet API.
+- __servlet.AsyncListener interface__ -
+- __servlet.ServletContextListener interface__ - 
+- __servlet.ServletContextAttributeListener interface__ - 
+- __servlet.ServletRequestListener interface__ - 
+- __servlet.ServletRequestAttributeListener interface__ - 
+- __servlet.http.HttpSessionListener interface__ - 
+- __servlet.http.HttpSessionAttributeListener interface__ - 
+- __servlet.http.HttpSessionActivationListener interface__ - 
+
 
 --
 
@@ -746,7 +780,11 @@ public class MyServletRequestListener implements ServletRequestListener {
 
 ```
 
+#
+
 # Servlet Cookies
+
+#
 
 # Servlet Exception and Error Handling
 
@@ -973,6 +1011,8 @@ Note: If there are multiple error-page entries, let’s say one for Throwable and 
 
 - You can also use  __JSP page as exception handler__ , just provide the location of jsp file rather than servlet mapping.
 
+
+#
 
 # Servlet File upload / download
 
@@ -1218,11 +1258,379 @@ public class UploadDownloadFileServlet extends HttpServlet {
 }
 ```
 
+#
+
+# Servlet 3 FIle Upload
+
+<!-- https://www.digitalocean.com/community/tutorials/servlet-3-file-upload-multipartconfig-part -->
+
+- @MultipartConfig annotation
+- javax.servlet.http.Part
+
+### MultipartConfig
+
+- to handle multipart/form-data (used for uploading file to server) requests 
+- attributes for @MultipartConfig annotation
+    - __fileSizeThreshold__ : after which the file will be written to disk. size value is in bytes, so 1024*1024*10 is 10MB.
+    - __location__ : Directory where files will be stored by default, default value is "".
+    - __maxFileSize__ : Maximum size allowed to upload a file, in bytes, default -1L (unlimited).
+    - __maxRequestSize__ : Maximum size allowed for multipart/form-data request. Default is -1L (unlimited).
+    
+### Part interface
+
+- represents a part or form item that was received within a multipart/form-data POST request.
+- some methods are - `getInputStream()`, `write(String fileName)` to read and write file.
+
+## HttpServletRequest Changes
+
+- new methods got added in `HttpServletRequest` to get all the parts in multipart/form-data request through `getParts()` method.
+- get a specific part using `getPart(String partName)`
+
+## File Upload Example with Servlet 3 APIs
+
+### HTML form
+
+```fileupload.html
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Servlet 3 File Upload</title>
+</head>
+<body>
+<form action="FileUploadServlet" method="post" enctype="multipart/form-data">
+	Select file to upload: <input type="file" name="fileName">
+	<br>
+	<input type="submit" value="Upload">
+</form>
+</body>
+</html>
+```
+
+### File Upload Servlet
+
+```java
+package com.hks.servlet;
+
+import java.io.File;
+import java.io.IOException;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.MultipartConfig;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.Part;
+
+/**
+ * Servlet implementation class FileUploadServlet
+ */
+@WebServlet("/FileUploadServlet")
+@MultipartConfig(fileSizeThreshold = 1024*1024*10,	// 10MB
+				maxFileSize = 1024*1024*50,			// 50MB
+				maxRequestSize = 1024*1024*100)		// 100MB
+public class FileUploadServlet extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+	
+	/*
+	 * Directory where uploaded files will be saved,
+	 * it's relative to the application directory.
+	 */
+	private static final String UPLOAD_DIR = "uploads";
+       
+    /**
+     * @see HttpServlet#HttpServlet()
+     */
+    public FileUploadServlet() {
+        super();
+        // TODO Auto-generated constructor stub
+    }
+
+	/**
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		response.getWriter().append("Served at: ").append(request.getContextPath());
+	}
+
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		//doGet(request, response);
+		// gets absolute path of the web application
+		String applicationPath = request.getServletContext().getRealPath("");
+		// constructs path of the directory to save the uploaded files
+		String uploadFilePath = applicationPath + File.separator + UPLOAD_DIR;
+		
+		// creates the save directory if it doesn't exist
+		File fileSaveDir = new File(uploadFilePath);
+		if(!fileSaveDir.exists()) {
+			fileSaveDir.mkdirs();
+		}
+		System.out.println("Upload File Directory: " + fileSaveDir.getAbsolutePath());
+		
+		String fileName = null;
+		// Get all the parts from request and write it to the file on the server
+		for(Part part : request.getParts()) {
+			fileName = getFileName(part);
+			part.write(uploadFilePath + File.separator + fileName);
+		}
+		
+		request.setAttribute("message", fileName + " File uploaded successfully!");
+		getServletContext().getRequestDispatcher("/response.jsp").forward(request, response);
+	}
+	
+	/*
+	 * Utility method to get file name from HTTP header content-disposition 
+	 */
+	private String getFileName(Part part) {
+		String contentDisp = part.getHeader("content-disposition");
+		System.out.println("contect-disposition header="+contentDisp);
+		String[] tokens = contentDisp.split(";");
+		for(String token : tokens) {
+			if(token.trim().startsWith("fileName")) {
+				return token.substring(token.indexOf("=") + 2, token.length()-1);
+			}
+		}
+		return "";
+	}
+
+}
+
+```
+
+- use @MultipartConfig annotation to specify different size parameters for upload file.
+- use request header “content-disposition” attribute to get the file name sent by client.<!-- we are saving the file with same name in this example -->
+- in this example, directory location to save the file is relative to web application. 
 
 
+### Response JSP
+
+```response.jsp
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+    pageEncoding="ISO-8859-1"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Upload File Response</title>
+<a href="LoginSuccess.jsp">Home</a>
+</head>
+<body>
+	<%--Using JSP EL to get message attribute value from the request scope --%>
+	<h2>${requestScope.message }</h2>
+</body>
+</html>
+```
+
+### Deployment Descriptor
 
 
+<!-- # Servlet Database Connection and Log4j integration -->
 
+#
+
+# Java / JDBC DataSource
+
+<!-- https://www.digitalocean.com/community/tutorials/java-datasource-jdbc-datasource-example -->
+
+### Java Datasource
+
+Java DataSource interface is present in `javax.sql` package and it only declare two overloaded methods `getConnection()` and `getConnection(String str1,String str2)`.
+
+### JDBC DataSource
+
+- preferred approach if you are looking for loose coupling for connectivity so that we can switch databases easily, connection pooling for transaction management and distributed systems support.
+
+It is the responsibility of different Database vendors to provide different kinds of implementation of DataSource interface. For example MySQL JDBC Driver provides basic implementation of DataSource interface with `com.mysql.jdbc.jdbc2.optional.MysqlDataSource` class and Oracle database driver implements it with `oracle.jdbc.pool.OracleDataSource` class.
+
+These implementation classes provide methods through which we can provide database server details with user credentials. Some of the other common features provided by these JDBC DataSource implementation classes are;
+- Caching of PreparedStatement for faster processing
+- Connection timeout settings
+- Logging features
+- ResultSet maximum size threshold
+
+
+#
+
+
+# Tomcat DataSource JNDI
+
+- JNDI Context
+- Most of the popular servlet containers provide built-in support for DataSource through Resource configuration and JNDI context. 
+- Apache Tomcat provide three ways to configure DataSource in JNDI context.
+    - __Application context.xml__ - context.xml in MET-INF directory. define Resource element in the context file and container will take care of loading and configuring it. drawbacks:
+        - Since the context file is bundled with the WAR file, we need to build and deploy new WAR for every small configuration change. 
+        - The datasource is created by container for the application usage only, so it can’t be used globally. We can’t share the datasource across multiple applications.
+        - If there is a global datasource (server.xml) defined with same name, the application datasource is ignored.
+    - __Server context.xml__ - If there are multiple applications in the server and you want to share DataSource across them, we can define that in the server context.xml file.
+       - located in `apache-tomcat/conf`
+       - scope of server context.xml file is application, so if you define a DataSource connection pool of 100 connections and there are 20 applications then the datasource will be created for each of the application. This will result in 2000 connections that will obviously consume all the database server resources and hurt application performance.
+    - __server.xml and context.xml__ - We can define DataSource at global level by defining them in the server.xml `GlobalNamingResources` element. If we use this approach, then we need to define a `ResourceLink` from context.xml file of server or application specific. This is the preferred way when you are looking to share a common resource pool across multiple applications running on the server. Regarding resource link, whether to define it at server level context xml file or application level depends on your requirement.
+
+## Tomcat DataSource JNDI Configuration Example
+
+### server.xml
+
+- add in tomcat server.xml, in `GlobalNamingResources` element
+- Also make sure that database driver is present in the tomcat lib directory [mysql-connector-j-8.0.32.jar]
+
+```server.xml
+<GlobalNamingResources>
+    <!-- Editable user database that can also be used by
+         UserDatabaseRealm to authenticate users
+    -->
+    <Resource name="jdbc/MyDB" global="jdbc/MyDB"
+				auth="Container" type="javax.sql.DataSource"
+				driverClassName="com.mysql.jdbc.Driver"
+				url="jdbc:mysql://localhost:3306/demo"
+				username="demo" password="demo"
+				maxActive="100" maxIdle="20"
+				minIdle="5" maxWait="10000"/>
+
+  </GlobalNamingResources>
+```
+
+### Resource Link Configuration - context.xml
+
+```context.xml
+<Context>
+
+...
+<ResourceLink name="jdbc/MyLocalDB"
+				global="jdbc/MyDB"
+				auth="container"
+				type="javax.sql.DataSource" />
+</Context>
+```
+
+Notice that resource link name is different than global link, we have to use this name in our java program to get the DataSource.
+
+
+### servlet
+
+```java
+package com.hks.jdbc.datasource;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.sql.DataSource;
+
+/**
+ * Servlet implementation class JDBCDataSourceExampleServlet
+ */
+@WebServlet("/JDBCDataSourceExampleServlet")
+public class JDBCDataSourceExampleServlet extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+       
+    /**
+     * @see HttpServlet#HttpServlet()
+     */
+    public JDBCDataSourceExampleServlet() {
+        super();
+        // TODO Auto-generated constructor stub
+    }
+
+	/**
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		//response.getWriter().append("Served at: ").append(request.getContextPath());
+		Context ctx = null;
+		Connection con = null;
+		Statement stmt = null;
+		ResultSet rs = null;
+		
+		try {
+			ctx = new InitialContext();
+			DataSource ds = (DataSource) ctx.lookup("java:/comp/env/jdbc/MyLocalDB");
+			
+			con = ds.getConnection();
+			stmt = con.createStatement();
+			rs = stmt.executeQuery("select empid, name from Employee");
+			
+			PrintWriter out = response.getWriter();
+			response.setContentType("text/html");
+			out.print("<html><body><h2>Employee Details</h2>");
+			out.print("<table border=\"1\" cellspacing=10 cellpadding=5>");
+			out.print("<th>Employee ID</th>");
+            out.print("<th>Employee Name</th>");
+            
+            while(rs.next()) {
+            	out.print("<tr>");
+            	out.print("<td>" + rs.getInt("empid") + "</td>");
+            	out.print("<td>" + rs.getString("name") + "</td>");
+            	out.print("</tr>");
+            }
+            out.print("</table></body><br/>");
+            
+            // print database information
+            out.print("<h3>Database Details</h3>");
+            out.print("Database Product: "+con.getMetaData().getDatabaseProductName() + "<br/>");
+            out.print("Database Driver: " + con.getMetaData().getDriverName() + "<br/>");
+            out.print("</html>");
+		}catch(NamingException e) {
+			e.printStackTrace();
+		}catch(SQLException e) {
+			e.printStackTrace();
+		}finally {
+			try {
+				rs.close();
+				stmt.close();
+				con.close();
+				ctx.close();
+			}catch(SQLException e) {
+				System.out.println("Exception in closing DB resources.");
+			}catch(NamingException e) {
+				System.out.println("Exception in closing context.");
+			}
+		}
+	}
+
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		doGet(request, response);
+	}
+
+}
+```
+
+
+The parts of the servlet code
+
+```java
+ctx = new InitialContext();
+DataSource ds = (DataSource) ctx.lookup("java:/comp/env/jdbc/MyLocalDB");
+```
+
+This is the way to get the JNDI resources defined to be used by the application. We could have written it in this way too;
+
+```java
+ctx = new InitialContext();
+Context intitCtx = (Context) ctx.lookup("java:/comp/env");
+DataSource ds = (DataSource) intitCtx.lookup("jdbc/MyLocalDB");
+
+```
 
 
  
@@ -1237,4 +1645,6 @@ https://www.educba.com/servlet-listener/
 <!--
 TBD
 https://www.digitalocean.com/community/tutorials/struts-tutorial-for-beginners
+# Java / JDBC DataSource
+https://www.digitalocean.com/community/tutorials/java-datasource-jdbc-datasource-example
 -->
