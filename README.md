@@ -1267,7 +1267,7 @@ public class UploadDownloadFileServlet extends HttpServlet {
 - @MultipartConfig annotation
 - javax.servlet.http.Part
 
-### MultipartConfig
+## MultipartConfig
 
 - to handle multipart/form-data (used for uploading file to server) requests 
 - attributes for @MultipartConfig annotation
@@ -1276,7 +1276,7 @@ public class UploadDownloadFileServlet extends HttpServlet {
     - __maxFileSize__ : Maximum size allowed to upload a file, in bytes, default -1L (unlimited).
     - __maxRequestSize__ : Maximum size allowed for multipart/form-data request. Default is -1L (unlimited).
     
-### Part interface
+## Part interface
 
 - represents a part or form item that was received within a multipart/form-data POST request.
 - some methods are - `getInputStream()`, `write(String fileName)` to read and write file.
@@ -1437,11 +1437,11 @@ public class FileUploadServlet extends HttpServlet {
 
 <!-- https://www.digitalocean.com/community/tutorials/java-datasource-jdbc-datasource-example -->
 
-### Java Datasource
+## Java Datasource
 
 Java DataSource interface is present in `javax.sql` package and it only declare two overloaded methods `getConnection()` and `getConnection(String str1,String str2)`.
 
-### JDBC DataSource
+## JDBC DataSource
 
 - preferred approach if you are looking for loose coupling for connectivity so that we can switch databases easily, connection pooling for transaction management and distributed systems support.
 
@@ -1489,9 +1489,9 @@ commit;
 ```db.properties
 #mysql DB properties
 MYSQL_DB_DRIVER_CLASS=com.mysql.jdbc.Driver
-MYSQL_DB_URL=jdbc:mysql://localhost:3306/UserDB
-MYSQL_DB_USERNAME=pankaj
-MYSQL_DB_PASSWORD=pankaj123
+MYSQL_DB_URL=jdbc:mysql://localhost:3306/demo
+MYSQL_DB_USERNAME=demo
+MYSQL_DB_PASSWORD=demo
 
 #Oracle DB Properties
 ORACLE_DB_DRIVER_CLASS=oracle.jdbc.driver.OracleDriver
@@ -1499,6 +1499,254 @@ ORACLE_DB_URL=jdbc:oracle:thin:@localhost:1521:orcl
 ORACLE_DB_USERNAME=hr
 ORACLE_DB_PASSWORD=oracle
 ```
+
+## Factory class to get MySQL or Oracle DataSource
+
+```java
+package com.hks.jdbc.datasource;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.Properties;
+
+import javax.sql.DataSource;
+
+import com.mysql.cj.jdbc.MysqlDataSource;
+
+import oracle.jdbc.pool.OracleDataSource;
+
+public class MyDataSourceFactory {
+	
+	public static DataSource getMySQLDataSource() {
+		Properties props = new Properties();
+		FileInputStream fis = null;
+		MysqlDataSource mysqlDS = null;
+		try {
+			fis = new FileInputStream("db.properties");
+			props.load(fis);
+			mysqlDS = new MysqlDataSource();
+			mysqlDS.setURL(props.getProperty("MYSQL_DB_URL"));
+			mysqlDS.setUser(props.getProperty("MYSQL_DB_USERNAME"));
+			mysqlDS.setPassword(props.getProperty("MYSQL_DB_PASSWORD"));
+		}catch (Exception e) {
+			// TODO: handle exception
+			e.printStackTrace();
+		}
+		return mysqlDS;
+	}
+	
+	public static DataSource getOracleDataSource() {
+		Properties props = new Properties();
+		FileInputStream fis = null;
+		OracleDataSource oracleDS = null;
+		try {
+			fis = new FileInputStream("db.properties");
+			props.load(fis);
+			oracleDS = new oracle.jdbc.pool.OracleDataSource();
+			oracleDS.setURL(props.getProperty("ORACLE_DB_URL"));
+			oracleDS.setUser("ORACLE_DB_USERNAME");
+			oracleDS.setPassword("ORACLE_DB_PASSWORD");
+			
+		}catch (IOException e) {
+			// TODO: handle exception
+			e.printStackTrace();
+		}catch (SQLException e) {
+			// TODO: handle exception
+			e.printStackTrace();
+		}
+		return oracleDS;
+	}
+
+}
+
+```
+
+test
+
+```java
+package com.hks.jdbc.datasource;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import javax.sql.DataSource;
+
+public class DataSourceTest {
+	
+	public static void main(String[] args) {
+		testDataSource("mysql");
+		System.out.println("*****************");
+		//testDataSource("oracle");
+	}
+	
+	public static void testDataSource(String dbType) {
+		DataSource ds = null;
+		if("mysql".equals(dbType)) {
+			ds = MyDataSourceFactory.getMySQLDataSource();
+		}else if("oracle".equals(dbType)) {
+			ds = MyDataSourceFactory.getOracleDataSource();
+		}else {
+			System.out.println("invalid db type.");
+			return;
+		}
+		
+		Connection con = null;
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			con = ds.getConnection();
+			stmt = con.createStatement();
+			rs = stmt.executeQuery("select id, name from Employee");
+			while(rs.next()) {
+				System.out.println("Employee Id="+rs.getInt("id")+", Name="+rs.getString("name"));
+			}
+		}catch (SQLException e) {
+			// TODO: handle exception
+			e.printStackTrace();
+		}finally {
+			try {
+				if(rs != null) rs.close();
+				if(stmt != null) stmt.close();
+				if(con != null) con.close();
+			}catch (SQLException e) {
+				// TODO: handle exception
+				e.printStackTrace();
+			}
+		}
+	}
+
+}
+
+```
+
+## Apache Commons DBCP
+
+If you look at above Java DataSource factory class, there are two major issues with it.
+
+1. The factory class methods to create the MySQL and Oracle DataSource are tightly coupled with respective driver API. If we want to remove support for Oracle database in future or want to add some other database support, it will require code change.
+2. Most of the code to get the MySQL and Oracle DataSource is similar, the only different is the implementation class that we are using.
+
+Apache Commons DBCP API helps us in getting rid of these issues by providing Java DataSource implementation that works as an abstraction layer between our program and different JDBC drivers. Apache DBCP library depends on Commons Pool library, so make sure they both are in the build path as shown in the image. Here is the DataSource factory class using BasicDataSource that is the simple implementation of DataSource.
+
+```java
+package com.hks.jdbc.datasource;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Properties;
+
+import org.apache.commons.dbcp2.BasicDataSource;
+
+public class DBCPDataSourceFactory {
+	
+	public static DataSource getDataSource(String dbType) {
+		Properties props = new Properties();
+		FileInputStream fis = null;
+		BasicDataSource ds = new BasicDataSource();
+		try {
+			fis = new FileInputStream("db.properties");
+			props.load(fis);
+		}catch (IOException e) {
+			// TODO: handle exception
+			e.printStackTrace();
+			return null;
+		}
+		if("mysql".equals(dbType)) {
+			ds.setDriverClassName(props.getProperty("MYSQL_DB_DRIVER_CLASS"));
+			ds.setUrl(props.getProperty("MYSQL_DB_URL"));
+			ds.setUsername("MYSQL_DB_USERNAME");
+			ds.setPassword("MYSQL_DB_PASSWORD");
+		}else if("oracle".equals(dbType)) {
+			ds.setDriverClassName(props.getProperty("ORACLE_DB_DRIVER_CLASS"));
+			ds.setUrl("ORACLE_DB_URL");
+			ds.setUsername("ORACLE_DB_USERNAME");
+			ds.setPassword("ORACLE_DB_PASSWORD");
+		}else {
+			return null;
+		}
+		return ds;
+	}
+
+}
+
+```
+
+test
+
+getting error - need to fix
+
+```
+Exception in thread "main" java.lang.NoClassDefFoundError: org/apache/commons/logging/LogFactory
+	at org.apache.commons.dbcp2.BasicDataSource.<clinit>(BasicDataSource.java:69)
+	at com.hks.jdbc.datasource.DBCPDataSourceFactory.getDataSource(DBCPDataSourceFactory.java:16)
+	at com.hks.jdbc.datasource.ApacheCommonDBCPTest.testDBCPDataSource(ApacheCommonDBCPTest.java:19)
+	at com.hks.jdbc.datasource.ApacheCommonDBCPTest.main(ApacheCommonDBCPTest.java:13)
+Caused by: java.lang.ClassNotFoundException: org.apache.commons.logging.LogFactory
+	at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:606)
+	at java.base/jdk.internal.loader.ClassLoaders$AppClassLoader.loadClass(ClassLoaders.java:168)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:522)
+	... 4 more
+
+```
+
+```java
+package com.hks.jdbc.datasource;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import javax.sql.DataSource;
+
+public class ApacheCommonDBCPTest {
+	
+	public static void main(String[] args) {
+		testDBCPDataSource("mysql");
+		System.out.println("**********");
+		//testDBCPDataSource("oracle");
+	}
+	
+	public static void testDBCPDataSource(String dbType) {
+		DataSource ds = DBCPDataSourceFactory.getDataSource(dbType);
+		
+		Connection con = null;
+		Statement stmt = null;
+		ResultSet rs = null;
+		
+		try {
+			con = ds.getConnection();
+			stmt = con.createStatement();
+			rs = stmt.executeQuery("select id, name from Employee");
+			while(rs.next()) {
+				System.out.println("Employee id="+rs.getInt("id")+", Name="+rs.getString("name"));
+			}
+		}catch (SQLException e) {
+			// TODO: handle exception
+			e.printStackTrace();
+		}finally {
+			try {
+				if(rs != null) rs.close();
+				if(stmt != null) stmt.close();
+				if(con != null) con.close();
+			}catch (SQLException e) {
+				// TODO: handle exception
+				e.printStackTrace();
+			}
+		}
+	}
+
+}
+
+```
+
+to be updated
+
+When you run above program, the output will be same as earlier program. If you look at the Java JDBC DataSource and above usage, it can be done with normal DriverManager too. The major benefit of Java DataSource is when it’s used within a Context and with JNDI. With simple configurations we can create a Database Connection Pool that is maintained by the Container itself. Most of the servlet containers such as Tomcat and JBoss provide it’s own Java DataSource implementation and all we need is to configure it through simple XML based configurations and then use JNDI context lookup to get the Java DataSource and work with it. This helps us by taking care of connection pooling and management from our application side to server side and thus giving us more time to write business logic for the application. In next tutorial, we will learn how we can configure DataSource in Tomcat Container and use it in Web Application.
+
 
 #
 
